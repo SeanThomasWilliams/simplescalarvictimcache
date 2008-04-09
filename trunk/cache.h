@@ -110,43 +110,40 @@ enum cache_policy {
 #define CACHE_BLK_DIRTY		0x00000002	/* dirty block */
 
 /* cache block (or line) definition */
-struct cache_blk_t
-{
-  struct cache_blk_t *way_next;	/* next block in the ordered way chain, used
-				   to order blocks for replacement */
-  struct cache_blk_t *way_prev;	/* previous block in the order way chain */
-  struct cache_blk_t *hash_next;/* next block in the hash bucket chain, only
-				   used in highly-associative caches */
-  /* since hash table lists are typically small, there is no previous
+struct cache_blk_t {
+    struct cache_blk_t *way_next;	/* next block in the ordered way chain, used
+                   to order blocks for replacement */
+    struct cache_blk_t *way_prev;	/* previous block in the order way chain */
+    struct cache_blk_t *hash_next;/* next block in the hash bucket chain, only
+                   used in highly-associative caches */
+    /* since hash table lists are typically small, there is no previous
      pointer, deletion requires a trip through the hash table bucket list */
-  md_addr_t tag;		/* data block tag value */
-  unsigned int status;		/* block status, see CACHE_BLK_* defs above */
-  tick_t ready;		/* time when block will be accessible, field
-				   is set when a miss fetch is initiated */
-  byte_t *user_data;		/* pointer to user defined data, e.g.,
-				   pre-decode data or physical page address */
-  /* DATA should be pointer-aligned due to preceeding field */
-  /* NOTE: this is a variable-size tail array, this must be the LAST field
+    md_addr_t tag;		/* data block tag value */
+    unsigned int status;		/* block status, see CACHE_BLK_* defs above */
+    tick_t ready;		/* time when block will be accessible, field
+                   is set when a miss fetch is initiated */
+    byte_t *user_data;		/* pointer to user defined data, e.g.,
+                   pre-decode data or physical page address */
+    /* DATA should be pointer-aligned due to preceeding field */
+    /* NOTE: this is a variable-size tail array, this must be the LAST field
      defined in this structure! */
-  byte_t data[1];		/* actual data block starts here, block size
-				   should probably be a multiple of 8 */
+    byte_t data[1];		/* actual data block starts here, block size
+                   should probably be a multiple of 8 */
 };
 
 /* cache set definition (one or more blocks sharing the same set index) */
-struct cache_set_t
-{
-  struct cache_blk_t **hash;	/* hash table: for fast access w/assoc, NULL
-				   for low-assoc caches */
-  struct cache_blk_t *way_head;	/* head of way list */
-  struct cache_blk_t *way_tail;	/* tail pf way list */
-  struct cache_blk_t *blks;	/* cache blocks, allocated sequentially, so
-				   this pointer can also be used for random
-				   access to cache blocks */
+struct cache_set_t {
+    struct cache_blk_t **hash;	/* hash table: for fast access w/assoc, NULL
+                   for low-assoc caches */
+    struct cache_blk_t *way_head;	/* head of way list */
+    struct cache_blk_t *way_tail;	/* tail pf way list */
+    struct cache_blk_t *blks;	/* cache blocks, allocated sequentially, so
+                   this pointer can also be used for random
+                   access to cache blocks */
 };
 
 /* cache definition */
-struct cache_t
-{
+struct cache_t {
   /* parameters */
   char *name;			/* cache name */
   int nsets;			/* number of sets */
@@ -168,10 +165,10 @@ struct cache_t
      of that operation */
   unsigned int					/* latency of block access */
     (*blk_access_fn)(enum mem_cmd cmd,		/* block access command */
-		     md_addr_t baddr,		/* program address to access */
-		     int bsize,			/* size of the cache block */
-		     struct cache_blk_t *blk,	/* ptr to cache block struct */
-		     tick_t now);		/* when fetch was initiated */
+                md_addr_t baddr,		/* program address to access */
+                int bsize,			/* size of the cache block */
+                struct cache_blk_t *blk,	/* ptr to cache block struct */
+                tick_t now);		/* when fetch was initiated */
 
   /* derived data, for fast decoding */
   int hsize;			/* cache set hash table size */
