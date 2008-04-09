@@ -1,1 +1,1 @@
-alias svn="svn --username=SeanThomasWilliams --password=mH4TW8wx8NH8"
+alias svn="svn --username=SeanThomasWilliams --password=mH4TW8wx8NH8 -m \"Revision\""
