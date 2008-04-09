@@ -77,7 +77,8 @@
 /* simulated registers */
 static struct regs_t regs;
 
-/* simulated memory */
+
+/* simulated memories */
 static struct mem_t *mem = NULL;
 
 /* track number of insn and refs */
