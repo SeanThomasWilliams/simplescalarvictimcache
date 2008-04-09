@@ -127,19 +127,18 @@ static struct stat_stat_t *pcstat_sdists[MAX_PCSTAT_VARS];
 /* l1 data cache l1 block miss handler function */
 static unsigned int			/* latency of block access */
 dl1_access_fn(enum mem_cmd cmd,		/* access cmd, Read or Write */
-	      md_addr_t baddr,		/* block address to access */
-	      int bsize,		/* size of block to access */
-	      struct cache_blk_t *blk,	/* ptr to block in upper level */
-	      tick_t now)		/* time of access */
-{
+              md_addr_t baddr,		/* block address to access */
+              int bsize,		/* size of block to access */
+              struct cache_blk_t *blk,	/* ptr to block in upper level */
+              tick_t now){		/* time of access */
     md_addr_t *repl_addr = NULL;
     if (cache_dl2){ // L1 Missed so check for data in L2
         int j = 0;
-        j = cache_access(cache_dl2, cmd, baddr, NULL, bsize, /* now */now, /* pudata */NULL, /* replace addr */repl_addr);
-        printf("\nBADDR: %d, ", baddr);
-        if (bsize != 32) printf("Block Size: %d, ", bsize);
-        if (repl_addr != 0) printf("Replacement Address: %d, ", repl_addr);
-        if (j != 1) printf("Cache access time: %d", j);
+        j = cache_access(cache_dl2, cmd, baddr, NULL, bsize, /* now */now, /* pudata */NULL, /* replace addr */&repl_addr);
+        printf("\nBlock Addr: %d, ", baddr);
+        printf("Tag %d, ", blk->tag);
+        if (repl_addr != 0) printf("RA: %d, ", repl_addr);
+        if (j != 1) printf("CAT: %d", j);
         return j;
     } else {
         /* access main memory, which is always done in the main simulator loop */
@@ -149,11 +148,11 @@ dl1_access_fn(enum mem_cmd cmd,		/* access cmd, Read or Write */
 
 /* l2 data cache block miss handler function */
 static unsigned int			/* latency of block access */
-dl2_access_fn(enum mem_cmd cmd,		/* access cmd, Read or Write */
-	      md_addr_t baddr,		/* block address to access */
-	      int bsize,		/* size of block to access */
-	      struct cache_blk_t *blk,	/* ptr to block in upper level */
-	      tick_t now)		/* time of access */
+dl2_access_fn(  enum mem_cmd cmd,		/* access cmd, Read or Write */
+                md_addr_t baddr,		/* block address to access */
+                int bsize,		/* size of block to access */
+                struct cache_blk_t *blk,	/* ptr to block in upper level */
+                tick_t now)		/* time of access */
 {
   /* this is a miss to the lowest level, so access main memory, which is
      always done in the main simulator loop */
@@ -168,14 +167,11 @@ il1_access_fn(enum mem_cmd cmd,		/* access cmd, Read or Write */
 	      struct cache_blk_t *blk,	/* ptr to block in upper level */
 	      tick_t now)		/* time of access */
 {
-  if (cache_il2)
-    {
+    if (cache_il2) {
       /* access next level of inst cache hierarchy */
       return cache_access(cache_il2, cmd, baddr, NULL, bsize,
 			  /* now */now, /* pudata */NULL, /* repl addr */NULL);
-    }
-  else
-    {
+    } else {
       /* access main memory, which is always done in the main simulator loop */
       return /* access latency, ignored */1;
     }
