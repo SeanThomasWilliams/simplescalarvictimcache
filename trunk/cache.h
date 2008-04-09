@@ -60,6 +60,7 @@
 #include "memory.h"
 #include "stats.h"
 
+//Comment
 /*
  * This module contains code to implement various cache-like structures.  The
  * user instantiates caches using cache_new().  When instantiated, the user
