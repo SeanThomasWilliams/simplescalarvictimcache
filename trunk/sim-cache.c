@@ -131,16 +131,18 @@ dl1_access_fn(enum mem_cmd cmd,		/* access cmd, Read or Write */
 	      struct cache_blk_t *blk,	/* ptr to block in upper level */
 	      tick_t now)		/* time of access */
 {
-  if (cache_dl2)
-    {
-      /* access next level of data cache hierarchy */
-      return cache_access(cache_dl2, cmd, baddr, NULL, bsize,
-			  /* now */now, /* pudata */NULL, /* repl addr */NULL);
-    }
-  else
-    {
-      /* access main memory, which is always done in the main simulator loop */
-      return /* access latency, ignored */1;
+    md_addr_t *repl_addr = NULL;
+    if (cache_dl2){ // L1 Missed so check for data in L2
+        int j = 0;
+        j = cache_access(cache_dl2, cmd, baddr, NULL, bsize, /* now */now, /* pudata */NULL, /* replace addr */repl_addr);
+        printf("\nBADDR: %d, ", baddr);
+        if (bsize != 32) printf("Block Size: %d, ", bsize);
+        if (repl_addr != 0) printf("Replacement Address: %d, ", repl_addr);
+        if (j != 1) printf("Cache access time: %d", j);
+        return j;
+    } else {
+        /* access main memory, which is always done in the main simulator loop */
+        return /* access latency, ignored */1;
     }
 }
 
