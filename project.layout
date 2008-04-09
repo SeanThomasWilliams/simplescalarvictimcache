@@ -1,13 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Release" />
+	<File name="cache.c" open="0" top="0" tabpos="0">
+		<Cursor position="17579" topLine="470" />
+	</File>
+	<File name="cache.h" open="1" top="0" tabpos="3">
+		<Cursor position="11933" topLine="230" />
+	</File>
 	<File name="eventq.h" open="0" top="0" tabpos="0">
 		<Cursor position="3297" topLine="52" />
 	</File>
 	<File name="memory.c" open="1" top="0" tabpos="1">
 		<Cursor position="0" topLine="0" />
 	</File>
+	<File name="memory.h" open="1" top="0" tabpos="4">
+		<Cursor position="3483" topLine="52" />
+	</File>
 	<File name="sim-cache.c" open="1" top="1" tabpos="2">
-		<Cursor position="6040" topLine="144" />
+		<Cursor position="5236" topLine="108" />
 	</File>
 </CodeBlocks_layout_file>
