@@ -28,9 +28,181 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="bitmap.h" />
+		<Unit filename="bpred.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bpred.h" />
+		<Unit filename="cache.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="cache.h" />
+		<Unit filename="dlite.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="dlite.h" />
+		<Unit filename="eio.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="eio.h" />
+		<Unit filename="endian.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="endian.h" />
+		<Unit filename="eval.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="eval.h" />
+		<Unit filename="eventq.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="eventq.h" />
+		<Unit filename="host.h" />
+		<Unit filename="libexo\exo-test.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libexo\exolex.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libexo\libexo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libexo\libexo.h" />
+		<Unit filename="loader.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="memory.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="memory.h" />
+		<Unit filename="misc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="misc.h" />
+		<Unit filename="options.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="options.h" />
+		<Unit filename="ptrace.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ptrace.h" />
+		<Unit filename="range.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="range.h" />
+		<Unit filename="regs.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="regs.h" />
+		<Unit filename="resource.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="resource.h" />
+		<Unit filename="sim-bpred.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="sim-cache.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="sim-eio.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="sim-fast.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="sim-outorder.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="sim-profile.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="sim-safe.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="sim.h" />
+		<Unit filename="stats.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="stats.h" />
+		<Unit filename="symbol.h" />
+		<Unit filename="syscall.h" />
+		<Unit filename="sysprobe.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="target-alpha\alpha.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="target-alpha\alpha.h" />
+		<Unit filename="target-alpha\config.h" />
+		<Unit filename="target-alpha\ecoff.h" />
+		<Unit filename="target-alpha\loader.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="target-alpha\symbol.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="target-alpha\syscall.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="target-pisa\config.h" />
+		<Unit filename="target-pisa\configbig.h" />
+		<Unit filename="target-pisa\configlit.h" />
+		<Unit filename="target-pisa\ecoff.h" />
+		<Unit filename="target-pisa\loader.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="target-pisa\pisa.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="target-pisa\pisa.h" />
+		<Unit filename="target-pisa\symbol.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="target-pisa\syscall.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tests-alpha\src\anagram.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tests-alpha\src\test-dirent.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tests-alpha\src\test-fmath.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tests-alpha\src\test-llong.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tests-alpha\src\test-lswlr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tests-alpha\src\test-math.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tests-alpha\src\test-printf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tests-pisa\src\anagram.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tests-pisa\src\test-fmath.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tests-pisa\src\test-llong.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tests-pisa\src\test-lswlr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tests-pisa\src\test-math.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tests-pisa\src\test-printf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="version.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />
