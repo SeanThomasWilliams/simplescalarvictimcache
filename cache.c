@@ -341,6 +341,7 @@ cache_create(char *name,		/* name of the cache */
   /* blow away the last block accessed */
   cp->last_tagset = 0;
   cp->last_blk = NULL;
+  cp->last_blk_addr = 0;
 
   /* allocate data blocks */
   cp->data = (byte_t *)calloc(nsets * assoc,
@@ -582,7 +583,7 @@ cache_access(struct cache_t *cp,	/* cache to access */
 
     /* blow away the last block to hit */
     cp->last_tagset = 0;
-    cp->last_blk = NULL;
+    cp->last_blk_addr = 0;
 
     /* write back replaced block data */
     if (repl->status & CACHE_BLK_VALID){
@@ -590,6 +591,9 @@ cache_access(struct cache_t *cp,	/* cache to access */
 
         if (repl_addr)
             *repl_addr = CACHE_MK_BADDR(cp, repl->tag, set);
+
+        cp->last_blk_addr = CACHE_MK_BADDR(cp, repl->tag, set);
+        printf("cp->last_blk_addr %d", cp->last_blk_addr);
 
         /* don't replace the block until outstanding misses are satisfied */
         lat += BOUND_POS(repl->ready - now);
@@ -703,15 +707,15 @@ cache_access(struct cache_t *cp,	/* cache to access */
     return (int) MAX(cp->hit_latency, (blk->ready - now));
 }
 
-unsigned int				/* latency of access in cycles */
-cache_add(struct cache_t *cp,	/* cache to access */
-            enum mem_cmd cmd,		/* access type, Read or Write */
-            md_addr_t addr,		/* address of access */
-            void *vp,			/* ptr to buffer for input/output */
-            int nbytes,		/* number of bytes to access */
-            tick_t now,		/* time of access */
-            byte_t **udata,		/* for return of user data ptr */
-            md_addr_t *repl_addr){	/* for address of replaced block */
+unsigned int				/* latency of access in cycles */ // None
+cache_add(struct cache_t *cp,	/* cache to access */ // Victim Cache
+            enum mem_cmd cmd,		/* access type, Read or Write */ // Shouldnt matter
+            md_addr_t addr,		/* address of access */ // Repl_addr
+            void *vp,			/* ptr to buffer for input/output */ // NULL
+            int nbytes,		/* number of bytes to access */ // nbytes param as per other cache
+            tick_t now,		/* time of access */ // Done in parallel with L1
+            byte_t **udata,		/* for return of user data ptr */ // Dunno
+            md_addr_t *repl_addr){	/* for address of replaced block */ // Also doesnt matter
 
     byte_t *p = vp;
     md_addr_t tag = CACHE_TAG(cp, addr);
@@ -735,14 +739,14 @@ cache_add(struct cache_t *cp,	/* cache to access */
     if (cp->hsize){
     /* higly-associativity cache, access through the per-set hash tables */
         int hindex = CACHE_HASH(cp, tag);
-        for (blk=cp->sets[set].hash[hindex]; blk; blk = blk->hash_next){
+        for (blk = cp->sets[set].hash[hindex]; blk; blk = blk->hash_next){
             if (blk->tag == tag && (blk->status & CACHE_BLK_VALID)){
                 goto cache_hit;
             }
         }
     } else {
         /* low-associativity cache, linear search the way list */
-        for (blk=cp->sets[set].way_head; blk; blk = blk->way_next){
+        for (blk = cp->sets[set].way_head; blk; blk = blk->way_next){
             if (blk->tag == tag && (blk->status & CACHE_BLK_VALID)){
                 goto cache_hit;
             }
@@ -783,8 +787,7 @@ cache_add(struct cache_t *cp,	/* cache to access */
     repl->status = CACHE_BLK_VALID;	/* dirty bit set on update */
 
     /* read data block */
-    lat += cp->blk_access_fn(Read, CACHE_BADDR(cp, addr), cp->bsize,
-    repl, now+lat);
+    lat += cp->blk_access_fn(Read, CACHE_BADDR(cp, addr), cp->bsize, repl, now + lat);
 
     /* copy data out of cache block */
     if (cp->balloc){
@@ -795,12 +798,8 @@ cache_add(struct cache_t *cp,	/* cache to access */
     if (cmd == Write)
         repl->status |= CACHE_BLK_DIRTY;
 
-    /* get user block data, if requested and it exists */
-    if (udata)
-        *udata = repl->user_data;
-
     /* update block status */
-    repl->ready = now+lat;
+    repl->ready = now + lat;
 
     /* link this entry back into the hash table */
     if (cp->hsize)
@@ -835,10 +834,6 @@ cache_add(struct cache_t *cp,	/* cache to access */
     cp->last_tagset = CACHE_TAGSET(cp, addr);
     cp->last_blk = blk;
 
-    /* get user block data, if requested and it exists */
-    if (udata)
-        *udata = blk->user_data;
-
     /* return first cycle data is available to access */
     return (int) MAX(cp->hit_latency, (blk->ready - now));
 
@@ -860,10 +855,6 @@ cache_add(struct cache_t *cp,	/* cache to access */
 
     /* tag is unchanged, so hash links (if they exist) are still valid */
 
-    /* get user block data, if requested and it exists */
-    if (udata)
-        *udata = blk->user_data;
-
     /* record the last block to hit */
     cp->last_tagset = CACHE_TAGSET(cp, addr);
     cp->last_blk = blk;
@@ -880,42 +871,35 @@ cache_add(struct cache_t *cp,	/* cache to access */
     invariants */
     int					/* non-zero if access would hit */
     cache_probe(struct cache_t *cp,		/* cache instance to probe */
-    md_addr_t addr)		/* address of block to probe */
-    {
-    md_addr_t tag = CACHE_TAG(cp, addr);
-    md_addr_t set = CACHE_SET(cp, addr);
-    struct cache_blk_t *blk;
+    md_addr_t addr){		/* address of block to probe */
 
-    /* permissions are checked on cache misses */
+        md_addr_t tag = CACHE_TAG(cp, addr);
+        md_addr_t set = CACHE_SET(cp, addr);
+        struct cache_blk_t *blk;
 
-    if (cp->hsize)
-    {
-    /* higly-associativity cache, access through the per-set hash tables */
-    int hindex = CACHE_HASH(cp, tag);
+        /* permissions are checked on cache misses */
 
-    for (blk=cp->sets[set].hash[hindex];
-    blk;
-    blk=blk->hash_next)
-    {
-    if (blk->tag == tag && (blk->status & CACHE_BLK_VALID))
-    return TRUE;
-    }
-    }
-    else
-    {
-    /* low-associativity cache, linear search the way list */
-    for (blk=cp->sets[set].way_head;
-    blk;
-    blk=blk->way_next)
-    {
-    if (blk->tag == tag && (blk->status & CACHE_BLK_VALID))
-    return TRUE;
-    }
-    }
+        if (cp->hsize){
+            /* higly-associativity cache, access through the per-set hash tables */
+            int hindex = CACHE_HASH(cp, tag);
 
-    /* cache block not found */
-    return FALSE;
-}
+            for (blk=cp->sets[set].hash[hindex]; blk; blk = blk->hash_next){
+                if (blk->tag == tag && (blk->status & CACHE_BLK_VALID)){
+                    return TRUE;
+                }
+            }
+        } else {
+            /* low-associativity cache, linear search the way list */
+            for (blk=cp->sets[set].way_head; blk; blk = blk->way_next){
+                if (blk->tag == tag && (blk->status & CACHE_BLK_VALID)){
+                    return TRUE;
+                }
+            }
+        }
+
+        /* cache block not found */
+        return FALSE;
+    }
 
 /* flush the entire cache, returns latency of the operation */
 unsigned int				/* latency of the flush operation */

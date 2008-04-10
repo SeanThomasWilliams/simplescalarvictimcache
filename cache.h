@@ -199,6 +199,8 @@ struct cache_t {
   /* last block to hit, used to optimize cache hit processing */
   md_addr_t last_tagset;	/* tag of last line accessed */
   struct cache_blk_t *last_blk;	/* cache block last accessed */
+  md_addr_t last_blk_addr;	/* cache block last accessed */
+
 
   /* data blocks */
   byte_t *data;			/* pointer to data blocks allocation */
@@ -260,6 +262,16 @@ cache_access(struct cache_t *cp,	/* cache to access */
 	     tick_t now,		/* time of access - now*/
 	     byte_t **udata,		/* for return of user data ptr - ? */
 	     md_addr_t *repl_addr);	/* for address of replaced block - put in victim cache*/
+
+unsigned int				/* latency of access in cycles */
+cache_add(struct cache_t *cp,	/* cache to access */
+            enum mem_cmd cmd,		/* access type, Read or Write */
+            md_addr_t addr,		/* address of access */
+            void *vp,			/* ptr to buffer for input/output */
+            int nbytes,		/* number of bytes to access */
+            tick_t now,		/* time of access */
+            byte_t **udata,		/* for return of user data ptr */
+            md_addr_t *repl_addr);	/* for address of replaced block */
 
 /* cache access functions, these are safe, they check alignment and
    permissions */
