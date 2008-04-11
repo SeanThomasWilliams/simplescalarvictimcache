@@ -131,9 +131,13 @@ dl1_access_fn(enum mem_cmd cmd,		/* access cmd, Read or Write */
               int bsize,		/* size of block to access */
               struct cache_blk_t *blk,	/* ptr to block in upper level */
               tick_t now){		/* time of access */
+    int vc;
     md_addr_t *repl_addr = (md_addr_t *)malloc(sizeof(md_addr_t)); // Here we need to add last replaced block/address to the cache structure
-    cache_access(victim_cache, cmd, cache_dl1->last_blk_addr,
-
+    if (cache_dl1->last_blk_addr != 0)
+        cache_access(victim_cache, cmd, cache_dl1->last_blk_addr, NULL, bsize, now, NULL, NULL);
+    //if (*victim_cache->last_blk_hit == 1){
+    //    printf("vc %d", vc);
+    //}
 
     if (cache_dl2){ // L1 Missed so check for data in L2
         // ask for what was replaced on the miss (addr)
@@ -364,7 +368,7 @@ sim_check_options(struct opt_odb_t *odb,	/* options database */
 			       dl1_access_fn, /* hit latency */1);
         victim_cache = cache_create("vc", 1, bsize, /* balloc */FALSE,
 			       /* usize */0, 4, cache_char2policy('l'),
-			       dl1_access_fn, /* hit latency */0);
+			       dl2_access_fn, /* hit latency */0);
       /* is the level 2 D-cache defined? */
       if (!mystricmp(cache_dl2_opt, "none"))
 	cache_dl2 = NULL;
