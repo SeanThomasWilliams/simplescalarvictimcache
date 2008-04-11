@@ -337,7 +337,7 @@ cache_create(char *name,		/* name of the cache */
   cp->replacements = 0;
   cp->writebacks = 0;
   cp->invalidations = 0;
-  cp->last_insn_hit = 0;
+  cp->last_hit = 0;
 
   /* blow away the last block accessed */
   cp->last_tagset = 0;
