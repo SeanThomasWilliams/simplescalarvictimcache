@@ -176,6 +176,7 @@ struct cache_t {
   int set_shift;
   md_addr_t set_mask;		/* use *after* shift */
   int tag_shift;
+  int last_hit;
   md_addr_t tag_mask;		/* use *after* shift */
   md_addr_t tagset_mask;	/* used for fast hit detection */
 

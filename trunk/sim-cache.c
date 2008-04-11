@@ -132,6 +132,9 @@ dl1_access_fn(enum mem_cmd cmd,		/* access cmd, Read or Write */
               struct cache_blk_t *blk,	/* ptr to block in upper level */
               tick_t now){		/* time of access */
     md_addr_t *repl_addr = (md_addr_t *)malloc(sizeof(md_addr_t)); // Here we need to add last replaced block/address to the cache structure
+    cache_access(victim_cache, cmd, cache_dl1->last_blk_addr,
+
+
     if (cache_dl2){ // L1 Missed so check for data in L2
         // ask for what was replaced on the miss (addr)
         // add this to victim cache
