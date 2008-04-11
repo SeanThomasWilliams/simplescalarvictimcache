@@ -337,6 +337,7 @@ cache_create(char *name,		/* name of the cache */
   cp->replacements = 0;
   cp->writebacks = 0;
   cp->invalidations = 0;
+  cp->last_insn_hit = 0;
 
   /* blow away the last block accessed */
   cp->last_tagset = 0;
@@ -558,6 +559,7 @@ cache_access(struct cache_t *cp,	/* cache to access */
 
     /* **MISS** */
     cp->misses++;
+    cp->last_hit = 0;
 
     /* select the appropriate block to replace, and re-link this entry to
     the appropriate place in the way list */
@@ -648,6 +650,7 @@ cache_access(struct cache_t *cp,	/* cache to access */
 
     /* **HIT** */
     cp->hits++;
+    cp->last_hit = 1;
 
     /* copy data out of cache block, if block exists */
     if (cp->balloc){
@@ -681,7 +684,7 @@ cache_access(struct cache_t *cp,	/* cache to access */
 
     /* **FAST HIT** */
     cp->hits++;
-
+    cp->last_hit = 1;
     /* copy data out of cache block, if block exists */
     if (cp->balloc){
         CACHE_BCOPY(cmd, blk, bofs, p, nbytes);
@@ -755,6 +758,7 @@ cache_add(struct cache_t *cp,	/* cache to access */ // Victim Cache
 
     /* **MISS** */
     cp->misses++;
+    cp->last_hit = 0;
 
     /* select the appropriate block to replace, and re-link this entry to
     the appropriate place in the way list */
@@ -812,6 +816,7 @@ cache_add(struct cache_t *cp,	/* cache to access */ // Victim Cache
 
     /* **HIT** */
     cp->hits++;
+    cp->last_hit = 1;
 
     /* copy data out of cache block, if block exists */
     if (cp->balloc){
@@ -841,6 +846,7 @@ cache_add(struct cache_t *cp,	/* cache to access */ // Victim Cache
 
     /* **FAST HIT** */
     cp->hits++;
+    cp->last_hit = 1;
 
     /* copy data out of cache block, if block exists */
     if (cp->balloc){
