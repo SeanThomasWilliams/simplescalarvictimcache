@@ -492,7 +492,20 @@ cache_stats(struct cache_t *cp,		/* cache instance */
 	  (double)cp->invalidations/sum);
 }
 
+/* print cache stats */
+void
+cache_stats_console(struct cache_t *cp){		/* cache instance */
 
+  double sum = (double)(cp->hits + cp->misses);
+
+  printf("cache: %s: %.0f hits %.0f misses %.0f repls\n",
+	  cp->name, (double)cp->hits, (double)cp->misses,
+	  (double)cp->replacements);
+  //printf("cache: %s: miss rate=%f  repl rate=%f  invalidation rate=%f\n",
+	//  cp->name,
+	  //(double)cp->misses/sum, (double)(double)cp->replacements/sum,
+	  //(double)cp->invalidations/sum);
+}
 
 /* access a cache, perform a CMD operation on cache CP at address ADDR,
    places NBYTES of data at *P, returns latency of operation if initiated
@@ -595,7 +608,6 @@ cache_access(struct cache_t *cp,	/* cache to access */
             *repl_addr = CACHE_MK_BADDR(cp, repl->tag, set);
 
         cp->last_blk_addr = CACHE_MK_BADDR(cp, repl->tag, set);
-        printf("cp->last_blk_addr %d", cp->last_blk_addr);
 
         /* don't replace the block until outstanding misses are satisfied */
         lat += BOUND_POS(repl->ready - now);
