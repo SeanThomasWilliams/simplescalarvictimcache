@@ -108,6 +108,9 @@ static struct cache_t *dtlb = NULL;
 /* Victim Cache */
 static struct cacht_t *victim_cache = NULL;
 
+/* Victim Cache */
+static struct cacht_t *stream_buffer = NULL;
+
 /* text-based stat profiles */
 #define MAX_PCSTAT_VARS 8
 static struct stat_stat_t *pcstat_stats[MAX_PCSTAT_VARS];
@@ -132,8 +135,6 @@ dl1_access_fn(enum mem_cmd cmd,		/* access cmd, Read or Write */
               struct cache_blk_t *blk,	/* ptr to block in upper level */
               tick_t now){		/* time of access */
     md_addr_t *repl_addr = (md_addr_t *)malloc(sizeof(md_addr_t)); // Here we need to add last replaced block/address to the cache structure
-    //printf("\nBlock Addr: %10d ", baddr);
-    //victim_cache = NULL;
     if (victim_cache){
         if (cache_dl1->last_blk_addr != 0){
             if (cache_probe(victim_cache, baddr) != 0){
@@ -144,21 +145,23 @@ dl1_access_fn(enum mem_cmd cmd,		/* access cmd, Read or Write */
         }
     }
     if (cache_dl2){ // L1 Missed so check for data in L2
-        // ask for what was replaced on the miss (addr)
-        // add this to victim cache
-        // if victim cache hits -> no latency b/c its in parallel with L1
         int j = 0;
         j = cache_access(cache_dl2, cmd, baddr, NULL, bsize, /* now */now, /* pudata */NULL, /* replace addr */repl_addr);
-        //printf("Last block replaced: %10d ", cache_dl1->last_blk_addr);
-        //printf("Tag %8d ", blk->tag);
-        //if (*repl_addr != 0) printf("RA: %10d ", *repl_addr);
         //if (j != 1) printf("CAT: %d", j);
         return j;
     } else {
         /* access main memory, which is always done in the main simulator loop */
-        return /* access latency, ignored */1;
+        return /* access latency */100;
     }
 }
+static unsigned int			/* latency of block access */
+zero_access_fn(enum mem_cmd cmd,		/* access cmd, Read or Write */
+              md_addr_t baddr,		/* block address to access */
+              int bsize,		/* size of block to access */
+              struct cache_blk_t *blk,	/* ptr to block in upper level */
+              tick_t now){		/* time of access */
+              return 0;
+              }
 
 /* l2 data cache block miss handler function */
 static unsigned int			/* latency of block access */
@@ -181,7 +184,32 @@ il1_access_fn(enum mem_cmd cmd,		/* access cmd, Read or Write */
 	      struct cache_blk_t *blk,	/* ptr to block in upper level */
 	      tick_t now)		/* time of access */
 {
+    if (cache_probe(stream_buffer, baddr)){ // The address was previously fetched into the stream buffer
+        // Return 0 on miss and have the buffer cleared
+        // On hit return 1 and fetch next address
+        // Check if it is at the first position -- is this always the head?
+        // If it is, check how full the cache is -- this should be 100%
+        // cache_access this into the IL1 cache
+        // add the baddr + 4 instruction to  the cache
+        // This may be done as a new replacement policy... return address based on hit/miss
+        // Maybe as a buffer_access function which will clear the buffer on a miss
+        // Also in this function, check for the available time (keep track of start time, keep available bit on blocks based on start time
+        // Maybe instead of the avail bit you check time started, sequential instruction number... dynamic check
+
+        // Notes on bandwidth --
+        // One insn/cycle is executed. Block size / insn size = #insn per block (cache request)
+        // Depending on IL2 bandwidth, there may be a constant stream of insns available
+
+        // Output the current insn time (now), show when the next miss occurs. Take the delta. If that is < pipelined Il2 access then you can have a constant
+        // Stream of insns ready (if they are sequential)
+    }
     if (cache_il2) {
+        if (stream_buffer){ // If we get here, there was a miss...
+            int i;
+            for (i = 0; i < 4; i++){
+                cache_access(stream_buffer, 0/*read*/, baddr + (bsize) * (i + 1), NULL, bsize, now + i, NULL, NULL);
+            }
+        }
       /* access next level of inst cache hierarchy */
       return cache_access(cache_il2, cmd, baddr, NULL, bsize,
 			  /* now */now, /* pudata */NULL, /* repl addr */NULL);
@@ -249,7 +277,8 @@ static char *cache_il1_opt /* = "none" */;
 static char *cache_il2_opt /* = "none" */;
 static char *itlb_opt /* = "none" */;
 static char *dtlb_opt /* = "none" */;
-static char *victim_cache_opt /* = "none" */;
+static int victim_cache_opt /* = "none" */;
+static int stream_buffer_opt /* = FALSE */;
 static int flush_on_syscalls /* = FALSE */;
 static int compress_icache_addrs /* = FALSE */;
 
@@ -337,7 +366,9 @@ sim_reg_options(struct opt_odb_t *odb)	/* options database */
 	       &compress_icache_addrs, /* default */FALSE,
 	       /* print */TRUE, NULL);
   opt_reg_flag(odb, "-vc", "Use a victim cache",
-	       &victim_cache_opt, "false", /* print */TRUE, NULL);
+	       &victim_cache_opt, FALSE, /* print */TRUE, NULL);
+  opt_reg_flag(odb, "-sb", "Use a stream buffer",
+	       &stream_buffer_opt, FALSE, /* print */TRUE, NULL);
   opt_reg_string_list(odb, "-pcstat",
 		      "profile stat(s) against text addr's (mult uses ok)",
 		      pcstat_vars, MAX_PCSTAT_VARS, &pcstat_nelt, NULL,
@@ -376,7 +407,7 @@ sim_check_options(struct opt_odb_t *odb,	/* options database */
             victim_cache = NULL;
         } else {
             victim_cache = cache_create("vc", 1, bsize, /* balloc */FALSE,
-            /* usize */0, 4, cache_char2policy(c), dl2_access_fn, /* hit latency */0);
+            /* usize */0, 4, cache_char2policy(c), zero_access_fn, /* hit latency */0);
         }
     }
       /* is the level 2 D-cache defined? */
@@ -390,7 +421,7 @@ sim_check_options(struct opt_odb_t *odb,	/* options database */
 		  "<name>:<nsets>:<bsize>:<assoc>:<repl>");
 	  cache_dl2 = cache_create(name, nsets, bsize, /* balloc */FALSE,
 				   /* usize */0, assoc, cache_char2policy(c),
-				   dl2_access_fn, /* hit latency */1);
+				   dl2_access_fn, /* hit latency */10);
 	}
 
 
@@ -434,6 +465,13 @@ sim_check_options(struct opt_odb_t *odb,	/* options database */
       cache_il1 = cache_create(name, nsets, bsize, /* balloc */FALSE,
 			       /* usize */0, assoc, cache_char2policy(c),
 			       il1_access_fn, /* hit latency */1);
+        /* use an victim cache? */
+        if (!stream_buffer_opt){
+            stream_buffer = NULL;
+        } else {
+            stream_buffer = cache_create("sb", 1, bsize, /* balloc */FALSE,
+            /* usize */0, 4, cache_char2policy('f'), dl2_access_fn, /* hit latency */1);
+        }
 
       /* is the level 2 D-cache defined? */
       if (!mystricmp(cache_il2_opt, "none"))
@@ -452,7 +490,7 @@ sim_check_options(struct opt_odb_t *odb,	/* options database */
 		  "<name>:<nsets>:<bsize>:<assoc>:<repl>");
 	  cache_il2 = cache_create(name, nsets, bsize, /* balloc */FALSE,
 				   /* usize */0, assoc, cache_char2policy(c),
-				   il2_access_fn, /* hit latency */1);
+				   il2_access_fn, /* hit latency */10);
 	}
     }
 
@@ -570,6 +608,8 @@ sim_reg_stats(struct stat_sdb_t *sdb)	/* stats database */
     cache_reg_stats(dtlb, sdb);
   if (victim_cache)
     cache_reg_stats(victim_cache, sdb);
+  if (stream_buffer)
+    cache_reg_stats(stream_buffer, sdb);
 
 
   for (i=0; i<pcstat_nelt; i++)
