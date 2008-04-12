@@ -1,1 +1,1 @@
-make && ./sim-cache -cache:dl1 dl1:128:32:1:l -cache:il1 il1:256:32:1:l -cache:il2 dl2 -cache:dl2 dl2:512:128:1:l ./benchmarks/cc1.alpha -O ./benchmarks/1stmt.i
+make && ./sim-cache -vc false -cache:dl1 dl1:128:32:1:l -cache:il1 il1:256:32:1:l -cache:il2 dl2 -cache:dl2 dl2:512:128:1:l ./benchmarks/cc1.alpha -O ./benchmarks/1stmt.i
