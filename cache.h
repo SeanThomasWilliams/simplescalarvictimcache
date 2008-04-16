@@ -193,6 +193,8 @@ struct cache_t {
   /* per-cache stats */
   counter_t hits;		/* total number of hits */
   counter_t misses;		/* total number of misses */
+  counter_t vc_misses;
+  counter_t vc_hits;
   counter_t replacements;	/* total number of replacements at misses */
   counter_t writebacks;		/* total number of writebacks at misses */
   counter_t invalidations;	/* total number of external invalidations */
