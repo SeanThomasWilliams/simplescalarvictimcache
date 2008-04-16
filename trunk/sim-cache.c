@@ -137,10 +137,16 @@ dl1_access_fn(enum mem_cmd cmd,		/* access cmd, Read or Write */
     md_addr_t *repl_addr = (md_addr_t *)malloc(sizeof(md_addr_t)); // Here we need to add last replaced block/address to the cache structure
     if (victim_cache){
         if (cache_dl1->last_blk_addr != 0){
-            if (cache_probe(victim_cache, baddr) != 0){
+            if (cache_probe(victim_cache, baddr) != 0){ // Hit in VC
+                cache_dl1->misses--;
+                cache_dl1->hits++;
+                cache_dl1->vc_hits++;
+                cache_flush_addr(victim_cache, baddr, now); // Swap this "hit" with the replacement
+                cache_access(victim_cache, 0, cache_dl1->last_blk_addr, NULL, bsize, now, NULL, NULL); // Add replaced block to victim cache and return
                 return 0;
             } else {
-                cache_access(victim_cache, 0, cache_dl1->last_blk_addr, NULL, bsize, now, NULL, NULL); // Add replaced block to victim cache
+                cache_dl1->vc_misses++;
+                cache_access(victim_cache, 0, cache_dl1->last_blk_addr, NULL, bsize, now, NULL, NULL); // Add replaced block to victim cache and continue
             }
         }
     }
@@ -182,37 +188,20 @@ il1_access_fn(enum mem_cmd cmd,		/* access cmd, Read or Write */
 	      md_addr_t baddr,		/* block address to access */
 	      int bsize,		/* size of block to access */
 	      struct cache_blk_t *blk,	/* ptr to block in upper level */
-	      tick_t now)		/* time of access */
-{
-    if (cache_probe(stream_buffer, baddr)){ // The address was previously fetched into the stream buffer
-        // Return 0 on miss and have the buffer cleared
-        // On hit return 1 and fetch next address
-        // Check if it is at the first position -- is this always the head?
-        // If it is, check how full the cache is -- this should be 100%
-        // cache_access this into the IL1 cache
-        // add the baddr + 4 instruction to  the cache
-        // This may be done as a new replacement policy... return address based on hit/miss
-        // Maybe as a buffer_access function which will clear the buffer on a miss
-        // Also in this function, check for the available time (keep track of start time, keep available bit on blocks based on start time
-        // Maybe instead of the avail bit you check time started, sequential instruction number... dynamic check
+	      tick_t now){		/* time of access */
 
-        // Notes on bandwidth --
-        // One insn/cycle is executed. Block size / insn size = #insn per block (cache request)
-        // Depending on IL2 bandwidth, there may be a constant stream of insns available
-
-        // Output the current insn time (now), show when the next miss occurs. Take the delta. If that is < pipelined Il2 access then you can have a constant
-        // Stream of insns ready (if they are sequential)
+    if (stream_buffer){
+            if (buffer_access(stream_buffer, baddr, bsize, now)){ // The address was previously fetched into the stream buffer
+                // We hit, so there was no additional latency. The address is already in L1 from the architecture, so return a latency of 1
+                // Since we do this in parallel with L1 and there is a 1 cycle delay to copy the data
+                cache_il1->misses--;
+                cache_il1->hits++;
+                return 1; // This buffer access fn takes care of fetching for both a hit and a miss.
+            }
     }
     if (cache_il2) {
-        if (stream_buffer){ // If we get here, there was a miss...
-            int i;
-            for (i = 0; i < 4; i++){
-                cache_access(stream_buffer, 0/*read*/, baddr + (bsize) * (i + 1), NULL, bsize, now + i, NULL, NULL);
-            }
-        }
       /* access next level of inst cache hierarchy */
-      return cache_access(cache_il2, cmd, baddr, NULL, bsize,
-			  /* now */now, /* pudata */NULL, /* repl addr */NULL);
+      return cache_access(cache_il2, cmd, baddr, NULL, bsize, /* now */now, /* pudata */NULL, /* repl addr */NULL); // Normal access fn
     } else {
       /* access main memory, which is always done in the main simulator loop */
       return /* access latency, ignored */1;
@@ -407,7 +396,7 @@ sim_check_options(struct opt_odb_t *odb,	/* options database */
             victim_cache = NULL;
         } else {
             victim_cache = cache_create("vc", 1, bsize, /* balloc */FALSE,
-            /* usize */0, 4, cache_char2policy(c), zero_access_fn, /* hit latency */0);
+            /* usize */0, 8, cache_char2policy(c), zero_access_fn, /* hit latency */0);
         }
     }
       /* is the level 2 D-cache defined? */
@@ -470,7 +459,7 @@ sim_check_options(struct opt_odb_t *odb,	/* options database */
             stream_buffer = NULL;
         } else {
             stream_buffer = cache_create("sb", 1, bsize, /* balloc */FALSE,
-            /* usize */0, 4, cache_char2policy('f'), dl2_access_fn, /* hit latency */1);
+            /* usize */0, 4, cache_char2policy('f'), zero_access_fn, /* hit latency */1);
         }
 
       /* is the level 2 D-cache defined? */

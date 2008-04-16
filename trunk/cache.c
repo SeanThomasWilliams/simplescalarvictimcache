@@ -334,6 +334,8 @@ cache_create(char *name,		/* name of the cache */
   /* initialize cache stats */
   cp->hits = 0;
   cp->misses = 0;
+  cp->vc_hits = 0;
+  cp->vc_misses = 0;
   cp->replacements = 0;
   cp->writebacks = 0;
   cp->invalidations = 0;
@@ -449,6 +451,10 @@ cache_reg_stats(struct cache_t *cp,	/* cache instance */
   stat_reg_formula(sdb, buf, "total number of accesses", buf1, "%12.0f");
   sprintf(buf, "%s.hits", name);
   stat_reg_counter(sdb, buf, "total number of hits", &cp->hits, 0, NULL);
+  sprintf(buf, "%s.vc_misses", name);
+  stat_reg_counter(sdb, buf, "total number of victim cache misses", &cp->vc_misses, 0, NULL);
+  sprintf(buf, "%s.vc_hits", name);
+  stat_reg_counter(sdb, buf, "total number of victim cache hits", &cp->vc_hits, 0, NULL);
   sprintf(buf, "%s.misses", name);
   stat_reg_counter(sdb, buf, "total number of misses", &cp->misses, 0, NULL);
   sprintf(buf, "%s.replacements", name);
@@ -506,6 +512,49 @@ cache_stats_console(struct cache_t *cp){		/* cache instance */
 	  //(double)cp->misses/sum, (double)(double)cp->replacements/sum,
 	  //(double)cp->invalidations/sum);
 }
+
+unsigned int				/* latency of access in cycles */
+buffer_access(struct cache_t *cp,	/* cache to access */
+            md_addr_t addr,		/* address of access */
+            int nbytes,		/* number of bytes to access */
+            tick_t now){	/* for address of replaced block */
+
+    md_addr_t tag = CACHE_TAG(cp, addr);
+    md_addr_t set = CACHE_SET(cp, addr);
+    md_addr_t bofs = CACHE_BLK(cp, addr);
+    struct cache_blk_t *blk, *repl;
+    int lat = 0;
+
+    if (cp->sets[set].way_head->tag == tag){ // We have a cache hit on the first item, so this is a valid stream
+
+    /* **HIT** */
+    cp->hits++;
+    // Remove the head, put it in L1, add something to the tail
+    // We should be able to mark a cache as FIFO since the sequential (four) insns will not repeat
+    // Their addresses, there wont be issues with re-ordering the insns
+    // cache_access(cp, addr + (blksize * 4)) ignore latency for now
+    // [A][2][3][4][5]
+    // This should remove the entry from the head which we just accessed
+    cache_access(cp, 0/*read*/, addr + (nbytes) * (4), NULL, nbytes, now + 4, NULL, NULL);
+    /* return first cycle data is available to access */
+    return 1;
+
+    }
+
+    /* **MISS** -- We flush this cache and request the next addr + blk size * 4 */
+    cp->misses++;
+
+    cache_flush(cp, now);
+    // for i = 1 to 5
+    // cache_access (cp, addr + (blksize * i)) since we want to request addr + 1 for buffer AND later addr for L1
+    // without breaking L1 on its own...
+    int i;
+    for (i = 0; i < 4; i++){ // Fill the stream buffer with the new stream
+        cache_access(cp, 0/*read*/, addr + (nbytes) * (i + 1), NULL, nbytes, now + i, NULL, NULL);
+    }
+    return 0;
+}
+
 
 /* access a cache, perform a CMD operation on cache CP at address ADDR,
    places NBYTES of data at *P, returns latency of operation if initiated
@@ -603,7 +652,6 @@ cache_access(struct cache_t *cp,	/* cache to access */
     /* write back replaced block data */
     if (repl->status & CACHE_BLK_VALID){
         cp->replacements++;
-
         if (repl_addr)
             *repl_addr = CACHE_MK_BADDR(cp, repl->tag, set);
 
@@ -721,6 +769,7 @@ cache_access(struct cache_t *cp,	/* cache to access */
     /* return first cycle data is available to access */
     return (int) MAX(cp->hit_latency, (blk->ready - now));
 }
+
 
 unsigned int				/* latency of access in cycles */ // None
 cache_add(struct cache_t *cp,	/* cache to access */ // Victim Cache
