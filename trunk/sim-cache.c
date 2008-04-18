@@ -459,7 +459,7 @@ sim_check_options(struct opt_odb_t *odb,	/* options database */
             stream_buffer = NULL;
         } else {
             stream_buffer = cache_create("sb", 1, bsize, /* balloc */FALSE,
-            /* usize */0, 4, cache_char2policy('f'), zero_access_fn, /* hit latency */1);
+            /* usize */0, 4, cache_char2policy('f'), il2_access_fn, /* hit latency */1);
         }
 
       /* is the level 2 D-cache defined? */
