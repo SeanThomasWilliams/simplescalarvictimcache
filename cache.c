@@ -524,21 +524,30 @@ buffer_access(struct cache_t *cp,	/* cache to access */
     md_addr_t bofs = CACHE_BLK(cp, addr);
     struct cache_blk_t *blk, *repl;
     int lat = 0;
+    int found = 0;
+    int i = 0;
+    if (cache_probe(cp, addr)){
+        for (blk=cp->sets[set].way_head; blk; blk = blk->way_next){
+            i++;
+            if (blk->tag == tag && (blk->status & CACHE_BLK_VALID)){
+                found = i;
+                break;
+            }
+        }
+        /* **HIT** */
+        cp->hits++;
+        // Remove the head, put it in L1, add something to the tail
+        // We should be able to mark a cache as FIFO since the sequential (four) insns will not repeat
+        // Their addresses, there wont be issues with re-ordering the insns
+        // cache_access(cp, addr + (blksize * 4)) ignore latency for now
+        // [A][2][3][4][5]
+        // This should remove the entry from the head which we just accessed
 
-    if (cp->sets[set].way_head->tag == tag){ // We have a cache hit on the first item, so this is a valid stream
-
-    /* **HIT** */
-    cp->hits++;
-    // Remove the head, put it in L1, add something to the tail
-    // We should be able to mark a cache as FIFO since the sequential (four) insns will not repeat
-    // Their addresses, there wont be issues with re-ordering the insns
-    // cache_access(cp, addr + (blksize * 4)) ignore latency for now
-    // [A][2][3][4][5]
-    // This should remove the entry from the head which we just accessed
-    cache_access(cp, 0/*read*/, addr + (nbytes) * (4), NULL, nbytes, now + 4, NULL, NULL);
-    /* return first cycle data is available to access */
-    return 1;
-
+        for (i = 0; i < found; i++){
+            cache_access(cp, 0/*read*/, addr + (nbytes) * (i + 1), NULL, nbytes, now, NULL, NULL);
+        }
+        /* return first cycle data is available to access */
+        return 1;
     }
 
     /* **MISS** -- We flush this cache and request the next addr + blk size * 4 */
@@ -548,7 +557,6 @@ buffer_access(struct cache_t *cp,	/* cache to access */
     // for i = 1 to 5
     // cache_access (cp, addr + (blksize * i)) since we want to request addr + 1 for buffer AND later addr for L1
     // without breaking L1 on its own...
-    int i;
     for (i = 0; i < 4; i++){ // Fill the stream buffer with the new stream
         cache_access(cp, 0/*read*/, addr + (nbytes) * (i + 1), NULL, nbytes, now + i, NULL, NULL);
     }
@@ -943,6 +951,7 @@ cache_add(struct cache_t *cp,	/* cache to access */ // Victim Cache
         md_addr_t tag = CACHE_TAG(cp, addr);
         md_addr_t set = CACHE_SET(cp, addr);
         struct cache_blk_t *blk;
+        int i = 0;
 
         /* permissions are checked on cache misses */
 
@@ -961,6 +970,7 @@ cache_add(struct cache_t *cp,	/* cache to access */ // Victim Cache
                 if (blk->tag == tag && (blk->status & CACHE_BLK_VALID)){
                     return TRUE;
                 }
+                i++;
             }
         }
 
