@@ -1,0 +1,1 @@
+Victim cache in simple scalar
